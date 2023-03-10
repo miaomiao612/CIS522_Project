@@ -15,6 +15,17 @@ def _change_type(polyline):
         min_lat = min(min_lat, cords[-1][1])
     return pd.Series({"POLYLINE": cords, "max_lon": max_lon, "min_lon": min_lon, "max_lat": max_lat, "min_lat": min_lat})
 
+def filter_map(train, max_lat, min_lat, max_long, min_long):
+    changed = train["POLYLINE"].apply(_change_type)
+    changed.reset_index(drop=True,inplace=True)
+    for i in range(len(changed)):
+        for cord in changed.iloc[i]['POLYLINE']:
+            if cord[0] in range(min_long, max_long) and cord[1] in range(min_lat, max_lat):
+                changed["check"] = 1
+            else:
+                changed["check"] = 0
+    return changed[changed["check"] == 1]
+
 
 def _normalize(polyline, max_lon, min_lon, max_lat, min_lat):
     final = [[(cord[0]-min_lon)/(max_lon-min_lon), (cord[1] - min_lat) / (max_lat - min_lat)] for cord in polyline]
@@ -35,13 +46,15 @@ def transform(df_train, m):
     # Change type
     changed = df_train["POLYLINE"].apply(_change_type)
     df_train["POLYLINE"] = changed["POLYLINE"]
+    # Filter map for max/min long/lat
+    filter_map(df_train,0,0,0,0)
     # Get min-max
     max_longitude = changed["max_lon"].max()
     min_longitude = changed["min_lon"].min()
     max_latitude = changed["max_lat"].max()
     min_latitude = changed["min_lat"].min()
     # Normalize min-max and split
-    cleaned = train_1["POLYLINE"].apply(_normalize, args=(max_longitude, min_longitude, max_latitude, min_latitude))
+    cleaned = df_train["POLYLINE"].apply(_normalize, args=(max_longitude, min_longitude, max_latitude, min_latitude))
     # Transform to matrices
     cleaned["MATRIX"] = cleaned["POLYLINE_INIT"].apply(_to_matrix, args=(m,))
     return cleaned
