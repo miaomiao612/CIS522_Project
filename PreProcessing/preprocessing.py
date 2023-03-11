@@ -16,15 +16,15 @@ def _change_type(polyline):
     return pd.Series({"POLYLINE": cords, "max_lon": max_lon, "min_lon": min_lon, "max_lat": max_lat, "min_lat": min_lat})
 
 def filter_map(train, max_lat, min_lat, max_long, min_long):
-    changed = train["POLYLINE"].apply(_change_type)
-    changed.reset_index(drop=True,inplace=True)
-    for i in range(len(changed)):
-        for cord in changed.iloc[i]['POLYLINE']:
-            if cord[0] in range(min_long, max_long) and cord[1] in range(min_lat, max_lat):
-                changed["check"] = 1
+    #changed = train["POLYLINE"].apply(_change_type)
+    train.reset_index(drop=True,inplace=True)
+    for i in range(len(train)):
+        for cord in train.iloc[i]['POLYLINE']:
+            if cord[0] < max_long and cord[0] > min_long and cord[1] < max_lat and cord[1] > min_lat:
+                train["check"] = 1
             else:
-                changed["check"] = 0
-    return changed[changed["check"] == 1]
+                train["check"] = 0
+    return train[train["check"] == 1]
 
 
 def _normalize(polyline, max_lon, min_lon, max_lat, min_lat):
@@ -45,9 +45,10 @@ def _to_matrix(polyline, m):
 def transform(df_train, m):
     # Change type
     changed = df_train["POLYLINE"].apply(_change_type)
-    df_train["POLYLINE"] = changed["POLYLINE"]
     # Filter map for max/min long/lat
-    filter_map(df_train,0,0,0,0)
+    changed = filter_map(changed,100,0,0,-100)
+    print(changed)
+    df_train["POLYLINE"] = changed["POLYLINE"]
     # Get min-max
     max_longitude = changed["max_lon"].max()
     min_longitude = changed["min_lon"].min()
@@ -61,7 +62,7 @@ def transform(df_train, m):
 
 
 if __name__ == "__main__":
-    train = pd.read_csv("../data/train.csv")
+    train = pd.read_csv("/Users/xinchengzhu/Downloads/train.csv")
     # Filter missing data and useless columns
     train = train[train["MISSING_DATA"] == False]
     train = train[train["POLYLINE"].map(len) > 1]
@@ -72,4 +73,4 @@ if __name__ == "__main__":
 
     transformed = transform(train_1, 256)
     # Save to CSV
-    transformed.to_csv("../data/train_transformed.csv")
+    transformed.to_csv("/Users/xinchengzhu/Downloads/train_transformed.csv")
