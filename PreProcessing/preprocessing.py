@@ -20,12 +20,20 @@ def filter_map(train, max_lat, min_lat, max_long, min_long):
     train.reset_index(drop=True,inplace=True)
     train["check"] = [0 for i in range(len(train))]
     for i in range(len(train)):
-        for cord in train.iloc[i]['POLYLINE']:
-            if cord[0] < max_long and cord[0] > min_long and cord[1] < max_lat and cord[1] > min_lat:
-                train["check"].iloc[i] = 1
-            else:
-                train["check"].iloc[i] = 0
-    return train[train["check"] == 1]
+        if train['max_lat'].iloc[i] > max_lat:
+            train["check"].iloc[i] = 1
+        if train['min_lat'].iloc[i] < min_lat:
+            train["check"].iloc[i] = 1
+        if train['min_lon'].iloc[i] < min_long:
+            train["check"].iloc[i] = 1
+        if train['max_lon'].iloc[i] > max_long:
+            train["check"].iloc[i] = 1
+        #for cord in train.iloc[i]['POLYLINE']:
+            #if cord[0] < max_long and cord[0] > min_long and cord[1] < max_lat and cord[1] > min_lat:
+                #train["check"].iloc[i] = 1
+            #else:
+                #train["check"].iloc[i] = 0
+    return train[train["check"] == 0]
 
 
 def _normalize(polyline, max_lon, min_lon, max_lat, min_lat):
@@ -47,13 +55,17 @@ def transform(df_train, m):
     # Change type
     changed = df_train["POLYLINE"].apply(_change_type)
     # Filter map for max/min long/lat
-    changed = filter_map(changed,41.5,40,-8.6,-9)
+    changed = filter_map(changed,41.2,41,-8.6,-8.7)
     #df_train["POLYLINE"] = changed["POLYLINE"] #要改
     # Get min-max
     max_longitude = changed["max_lon"].max()
     min_longitude = changed["min_lon"].min()
     max_latitude = changed["max_lat"].max()
     min_latitude = changed["min_lat"].min()
+    print(max_longitude)
+    print(min_longitude)
+    print(max_latitude)
+    print(min_latitude)
     # Normalize min-max and split
     cleaned = changed["POLYLINE"].apply(_normalize, args=(max_longitude, min_longitude, max_latitude, min_latitude))
     # Transform to matrices
